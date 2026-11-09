@@ -32,7 +32,7 @@ const PUBLIC_URL = (env.PUBLIC_URL || "").trim().replace(/\/+$/, "");          /
 const PAY_ON = !!(UP_KEY && UP_BASE && PUBLIC_URL);
 const PLANS = (env.PLANS || "30:300,90:800,180:1500").split(",")
   .map((x) => x.trim().split(":").map(Number)).filter(([d, pr]) => d > 0 && pr > 0).map(([days, price]) => ({ days, price }));
-if (ADMIN_PASS === "change-me-now") console.warn("WARNING: ADMIN_PASS is still the default. Change it in .env before going live!");
+if (ADMIN_PASS === "samoli1122") console.warn("WARNING: ADMIN_PASS is still the default. Change it in .env before going live!");
 
 // ---------- proxy setup ----------
 // TRUST_PROXY: set when running BEHIND nginx/Caddy/Cloudflare/Render etc. (number of hops, usually 1)
