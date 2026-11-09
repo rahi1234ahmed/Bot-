@@ -17,9 +17,9 @@ const PORT = env.PORT || 3000;
 const DB = path.join(__dirname, "data.json");
 
 // ---------- config ----------
-const ADMIN_USER = env.ADMIN_USER || "samoli";
+const ADMIN_USER = env.ADMIN_USER || "admin";
 const ADMIN_PASS = env.ADMIN_PASS || "samoli1122";
-const ADMIN_TG = String(env.ADMIN_TELEGRAM_ID || "7813457714").trim();            // your numeric Telegram ID
+const ADMIN_TG = String(env.ADMIN_TELEGRAM_ID || "").trim();            // your numeric Telegram ID
 const FREE_MAX_ALERTS = +env.FREE_MAX_ALERTS || 2;
 const PREMIUM_MAX_ALERTS = +env.PREMIUM_MAX_ALERTS || 25;
 const FREE_DELAY_SEC = env.FREE_DELAY_SEC !== undefined && env.FREE_DELAY_SEC !== "" ? +env.FREE_DELAY_SEC : 300;
@@ -32,7 +32,7 @@ const PUBLIC_URL = (env.PUBLIC_URL || "").trim().replace(/\/+$/, "");          /
 const PAY_ON = !!(UP_KEY && UP_BASE && PUBLIC_URL);
 const PLANS = (env.PLANS || "30:300,90:800,180:1500").split(",")
   .map((x) => x.trim().split(":").map(Number)).filter(([d, pr]) => d > 0 && pr > 0).map(([days, price]) => ({ days, price }));
-if (ADMIN_PASS === "samoli1122") console.warn("WARNING: ADMIN_PASS is still the default. Change it in .env before going live!");
+if (ADMIN_PASS === "change-me-now") console.warn("WARNING: ADMIN_PASS is still the default. Change it in .env before going live!");
 
 // ---------- proxy setup ----------
 // TRUST_PROXY: set when running BEHIND nginx/Caddy/Cloudflare/Render etc. (number of hops, usually 1)
@@ -395,7 +395,9 @@ const app = express();
 app.disable("x-powered-by");
 if (TRUST_PROXY !== undefined && TRUST_PROXY !== "")
   app.set("trust proxy", /^\d+$/.test(TRUST_PROXY) ? +TRUST_PROXY : TRUST_PROXY === "true" ? true : TRUST_PROXY);
-app.use(express.json({ limit: "10kb" }));
+const smallJson = express.json({ limit: "10kb" });
+// the admin file-upload route (below) brings its own bigger parser, and only AFTER admin login
+app.use((req, res, next) => (req.path === "/api/admin/files" && req.method === "POST" ? next() : smallJson(req, res, next)));
 app.use(express.static(path.join(__dirname, "public")));
 
 const safeEq = (a, b) => crypto.timingSafeEqual(
@@ -472,6 +474,55 @@ app.post("/api/admin/premium", adminLimiter, admin, (req, res) => {
 });
 app.delete("/api/admin/premium/:contact", adminLimiter, admin, (req, res) => {
   const db = load(); delete db.premium[norm(req.params.contact)]; save(db); res.json({ ok: true });
+});
+
+// ---------- Admin: upload / replace site files from the browser ----------
+// Only static files inside /public can be uploaded (html, css, client js, images).
+// Server code (index.js, package.json), .env and data.json can NOT be changed from the web,
+// so a stolen admin password can never turn into running code on your server.
+const PUBLIC_DIR = path.join(__dirname, "public");
+const BACKUP_DIR = path.join(__dirname, "backups");
+const FILE_EXT = new Set([".html", ".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".txt"]);
+const MAX_UPLOAD = 5 * 1024 * 1024;
+const validFileName = (n) => typeof n === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(n) && !n.includes("..") && FILE_EXT.has(path.extname(n).toLowerCase());
+
+function backupFile(name) {
+  const src = path.join(PUBLIC_DIR, name);
+  if (!fs.existsSync(src)) return false;
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  fs.copyFileSync(src, path.join(BACKUP_DIR, `${name}.${Date.now()}.bak`));
+  const old = fs.readdirSync(BACKUP_DIR).filter((f) => f.startsWith(name + ".") && /\.\d+\.bak$/.test(f) && f.slice(name.length + 1).split(".").length === 2).sort();
+  for (const f of old.slice(0, Math.max(0, old.length - 5))) fs.unlinkSync(path.join(BACKUP_DIR, f)); // keep last 5 versions
+  return true;
+}
+
+app.get("/api/admin/files", adminLimiter, admin, (_req, res) => {
+  fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+  const files = fs.readdirSync(PUBLIC_DIR, { withFileTypes: true })
+    .filter((d) => d.isFile() && validFileName(d.name))
+    .map((d) => { const st = fs.statSync(path.join(PUBLIC_DIR, d.name)); return { name: d.name, size: st.size, modified: st.mtime.toISOString() }; });
+  res.json({ files });
+});
+
+app.post("/api/admin/files", adminLimiter, admin, express.json({ limit: "8mb" }), (req, res) => {
+  const { name, data } = req.body || {};
+  if (!validFileName(name)) return res.status(400).json({ error: "Bad file name or type. Allowed: html, css, js, png, jpg, gif, webp, svg, ico, txt (letters, numbers, - _ . only)" });
+  if (typeof data !== "string" || !/^[A-Za-z0-9+/=]+$/.test(data)) return res.status(400).json({ error: "Bad file data" });
+  const buf = Buffer.from(data, "base64");
+  if (!buf.length || buf.length > MAX_UPLOAD) return res.status(400).json({ error: "File must be 1 byte to 5 MB" });
+  fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+  const replaced = backupFile(name);
+  const dest = path.join(PUBLIC_DIR, name), tmp = dest + ".tmp";
+  fs.writeFileSync(tmp, buf); fs.renameSync(tmp, dest);
+  res.json({ ok: true, name, size: buf.length, replaced });
+});
+
+app.delete("/api/admin/files/:name", adminLimiter, admin, (req, res) => {
+  const n = req.params.name;
+  if (!validFileName(n) || n === "index.html") return res.status(400).json({ error: "Cannot delete this file" });
+  backupFile(n);
+  try { fs.unlinkSync(path.join(PUBLIC_DIR, n)); } catch (_) {}
+  res.json({ ok: true });
 });
 
 app.get("/admin", adminLimiter, admin, (_req, res) => res.sendFile(path.join(__dirname, "admin.html")));
