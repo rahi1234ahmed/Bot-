@@ -13,16 +13,22 @@ table{width:100%;border-collapse:collapse;font-size:.9rem}td,th{padding:8px;bord
 <div class="card"><b>Mark slot as open</b><p style="color:#9aa2c2;margin:6px 0">Notifies matching alerts. Use only after you have checked availability yourself through a permitted channel.</p>
 <input id="to" placeholder="Destination"><input id="city" placeholder="City"><input id="type" placeholder="Visa type (optional)"><input id="note" placeholder="Note (optional)">
 <button id="go">Notify matching users</button><div id="out"></div></div>
+<div class="card"><b>Premium</b><p style="color:#9aa2c2;margin:6px 0">Grant Premium to a Telegram chat ID or email, or generate redeem codes users send to the bot with /redeem.</p>
+<input id="pc" placeholder="Chat ID or email"><input id="pd" type="number" placeholder="Days" style="width:90px"><button id="pg">Grant</button>
+<br><input id="cd" type="number" placeholder="Days" style="width:90px"><input id="cn" type="number" placeholder="How many" style="width:110px"><button id="cg">Generate codes</button><pre id="pout" style="color:#4cd3a0;white-space:pre-wrap"></pre></div>
 <div class="card scroll"><b id="count">Alerts</b><table id="t"></table></div>
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 async function load(){const d=await (await fetch("/api/admin/alerts")).json();
 $("count").textContent="Alerts ("+d.alerts.length+")";
-$("t").innerHTML="<tr><th>Route</th><th>Centre</th><th>Type</th><th>Channel</th><th>Last notified</th><th></th></tr>"+
-d.alerts.map(a=>`<tr><td>${esc(a.from)} → ${esc(a.to)}</td><td>${esc(a.city)}</td><td>${esc(a.type)}</td><td>${esc(a.channel)}: ${esc(a.contact)}</td><td>${a.notified?new Date(a.notified).toLocaleString():"-"}</td><td><button class="x" data-id="${a.id}">Delete</button></td></tr>`).join("");}
+$("t").innerHTML="<tr><th>Route</th><th>Centre</th><th>Type</th><th>Channel</th><th>Plan</th><th>Last notified</th><th></th></tr>"+
+d.alerts.map(a=>`<tr><td>${esc(a.from)} → ${esc(a.to)}</td><td>${esc(a.city)}</td><td>${esc(a.type)}</td><td>${esc(a.channel)}: ${esc(a.contact)}</td><td>${a.premium?"⭐ Premium":"Free"}</td><td>${a.notified?new Date(a.notified).toLocaleString():"-"}</td><td><button class="x" data-id="${a.id}">Delete</button></td></tr>`).join("");}
 $("t").onclick=async e=>{const id=e.target.dataset.id;if(id&&confirm("Delete this alert?")){await fetch("/api/admin/alerts/"+id,{method:"DELETE"});load()}};
 $("go").onclick=async()=>{const r=await fetch("/api/admin/slots",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:$("to").value,city:$("city").value,type:$("type").value,note:$("note").value})});
-const d=await r.json();$("out").textContent=r.ok?`Matched ${d.matched}, sent ${d.sent}${d.errors.length?", failed "+d.errors.length:""}`:(d.error||"Error");load()};
+const d=await r.json();$("out").textContent=r.ok?`Matched ${d.matched}, premium sent ${d.sent}, free scheduled ${d.scheduled||0}${d.errors.length?", failed "+d.errors.length:""}`:(d.error||"Error");load()};
+const J=(u,b)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(async r=>({ok:r.ok,d:await r.json()}));
+$("pg").onclick=async()=>{const {ok,d}=await J("/api/admin/premium",{contact:$("pc").value,days:$("pd").value});$("pout").textContent=ok?"Premium until "+d.until.slice(0,10):(d.error||"Error");load()};
+$("cg").onclick=async()=>{const {ok,d}=await J("/api/admin/codes",{days:$("cd").value,count:$("cn").value||1});$("pout").textContent=ok?d.codes.join("\n"):(d.error||"Error")};
 load();
 </script></body></html>
