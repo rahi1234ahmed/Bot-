@@ -16,6 +16,8 @@ table{width:100%;border-collapse:collapse;font-size:.9rem}td,th{padding:8px;bord
 <div class="card"><b>Premium</b><p style="color:#9aa2c2;margin:6px 0">Grant Premium to a Telegram chat ID or email, or generate redeem codes users send to the bot with /redeem.</p>
 <input id="pc" placeholder="Chat ID or email"><input id="pd" type="number" placeholder="Days" style="width:90px"><button id="pg">Grant</button>
 <br><input id="cd" type="number" placeholder="Days" style="width:90px"><input id="cn" type="number" placeholder="How many" style="width:110px"><button id="cg">Generate codes</button><pre id="pout" style="color:#4cd3a0;white-space:pre-wrap"></pre></div>
+<div class="card"><b>Site files</b><p style="color:#9aa2c2;margin:6px 0">Upload or replace website files (index.html, premium.html, css, js, images). Old version is backed up automatically. Server code and .env cannot be changed from here.</p>
+<input id="fi" type="file"><button id="fu">Upload file</button><div id="fout" style="color:#4cd3a0;margin:8px 0"></div><ul id="flist" style="padding-left:18px"></ul></div>
 <div class="card scroll"><b id="count">Alerts</b><table id="t"></table></div>
 <script>
 const $=id=>document.getElementById(id);
@@ -30,5 +32,12 @@ const d=await r.json();$("out").textContent=r.ok?`Matched ${d.matched}, premium 
 const J=(u,b)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(async r=>({ok:r.ok,d:await r.json()}));
 $("pg").onclick=async()=>{const {ok,d}=await J("/api/admin/premium",{contact:$("pc").value,days:$("pd").value});$("pout").textContent=ok?"Premium until "+d.until.slice(0,10):(d.error||"Error");load()};
 $("cg").onclick=async()=>{const {ok,d}=await J("/api/admin/codes",{days:$("cd").value,count:$("cn").value||1});$("pout").textContent=ok?d.codes.join("\n"):(d.error||"Error")};
+async function files(){const d=await (await fetch("/api/admin/files")).json();$("flist").innerHTML=d.files.map(f=>`<li style="margin:6px 0"><a style="color:#6c8cff" href="/${esc(f.name)}" target="_blank">${esc(f.name)}</a> · ${(f.size/1024).toFixed(1)} KB ${f.name==="index.html"?"":`<button class="fdel" data-f="${esc(f.name)}" style="margin-left:6px">Delete</button>`}</li>`).join("")}
+$("flist").onclick=async e=>{const n=e.target.dataset.f;if(n&&confirm("Delete "+n+"?")){await fetch("/api/admin/files/"+encodeURIComponent(n),{method:"DELETE"});files()}};
+$("fu").onclick=async()=>{const f=$("fi").files[0];if(!f){$("fout").style.color="#fb923c";$("fout").textContent="Choose a file first";return}
+const b64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]);r.onerror=no;r.readAsDataURL(f)});
+const {ok,d}=await J("/api/admin/files",{name:f.name.replace(/\s+/g,"-"),data:b64});
+$("fout").style.color=ok?"#4cd3a0":"#fb923c";$("fout").textContent=ok?"Uploaded "+d.name+(d.replaced?" (old version backed up)":""):(d.error||"Error");if(ok){$("fi").value="";files()}};
+files();
 load();
 </script></body></html>
