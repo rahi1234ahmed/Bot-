@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SlotWatch – VFS Appointment Alerts</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#f4f6ff;--card:rgba(255,255,255,.8);--text:#12162b;--muted:#5d6585;--line:rgba(110,120,180,.22);--a1:#4f46e5;--a2:#06b6d4;--accent-t:#fff;--ok:#0f9d6b;--bad:#d9480f;--field:#fff;--glow:rgba(79,70,229,.25);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#080b1a;--card:rgba(24,28,54,.72);--text:#eef0ff;--muted:#a1a9cf;--line:rgba(140,150,220,.2);--a1:#7c83ff;--a2:#22d3ee;--accent-t:#060818;--ok:#4ade80;--bad:#fb923c;--field:rgba(255,255,255,.05);--glow:rgba(124,131,255,.3)}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#080b1a;--card:rgba(24,28,54,.72);--text:#eef0ff;--muted:#a1a9cf;--line:rgba(140,150,220,.2);--a1:#7c83ff;--a2:#22d3ee;--accent-t:#060818;--ok:#4ade80;--bad:#fb923c;--field:rgba(255,255,255,.05);--glow:rgba(124,131,255,.3)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55;background:radial-gradient(900px 500px at 85% -10%,var(--glow),transparent 60%),radial-gradient(700px 420px at -10% 10%,rgba(6,182,212,.18),transparent 60%),var(--bg);background-attachment:fixed}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 56px}
+nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.1rem}
+.logo i{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--a1),var(--a2));font-style:normal;box-shadow:0 6px 18px var(--glow)}
+.live{font-size:.78rem;font-weight:600;color:var(--ok);display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:5px 10px;background:var(--card)}
+.live b{width:8px;height:8px;border-radius:50%;background:var(--ok);animation:p 1.6s infinite}
+@keyframes p{0%{box-shadow:0 0 0 0 var(--ok)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+h1{font-size:clamp(2rem,7vw,3rem);line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.03em}
+h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);margin:0 0 24px;font-size:1.04rem}
+h2{font-size:1.1rem;margin:0 0 14px;font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:16px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(10,15,50,.08)}
+.steps{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));padding:0;background:none;border:0;box-shadow:none;backdrop-filter:none}
+.step{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.step em{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;font-style:normal;font-weight:800;color:var(--accent-t);background:linear-gradient(135deg,var(--a1),var(--a2));margin-bottom:10px}
+.step b{display:block}.step span{color:var(--muted);font-size:.9rem}
+.grid{display:grid;gap:0 14px;grid-template-columns:1fr 1fr}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.04em}
+input,select{width:100%;padding:13px 14px;font:inherit;border:1px solid var(--line);border-radius:12px;background:var(--field);color:var(--text);outline:none;transition:.2s}
+input:focus,select:focus{border-color:var(--a1);box-shadow:0 0 0 4px var(--glow)}
+.full{grid-column:1/-1}
+button{font:inherit;cursor:pointer}
+.btn{width:100%;margin-top:20px;padding:15px;border:0;border-radius:13px;color:var(--accent-t);font-weight:800;font-size:1rem;background:linear-gradient(135deg,var(--a1),var(--a2));box-shadow:0 10px 26px var(--glow);transition:transform .15s}
+.btn:active{transform:scale(.98)}
+.msg{min-height:1.4em;margin:12px 0 0;font-weight:600}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--line);animation:in .3s}
+.row:first-child{border-top:0}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.row small{display:block;color:var(--muted)}
+.tag{display:inline-block;font-size:.7rem;font-weight:700;border-radius:99px;padding:2px 9px;margin-right:6px;color:var(--accent-t);background:linear-gradient(135deg,var(--a1),var(--a2))}
+.x{border:1px solid var(--line);background:none;color:var(--muted);border-radius:10px;padding:7px 12px}
+.x:hover{color:var(--bad);border-color:var(--bad)}
+.cta{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.cta a{padding:11px 18px;border-radius:12px;font-weight:700;text-decoration:none;color:var(--text);border:1px solid var(--a1)}
+.note{border:1px dashed var(--line);border-radius:12px;padding:12px 14px;font-size:.88rem;color:var(--muted)}
+footer{color:var(--muted);font-size:.8rem;margin-top:22px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav><div class="logo"><i>🔔</i>SlotWatch</div><div class="live"><b></b>Alerts active</div></nav>
+
+<h1>Never miss a <span>VFS slot</span> again.</h1>
+<p class="sub">Set an alert for your route. We notify you the moment you should check, then you book directly on the official VFS Global website.</p>
+
+<div class="card steps" style="margin-bottom:16px">
+<div class="step"><em>1</em><b>Set an alert</b><span>Choose your route and visa type.</span></div>
+<div class="step"><em>2</em><b>Get notified</b><span>Email, WhatsApp or Telegram.</span></div>
+<div class="step"><em>3</em><b>Book yourself</b><span>Finish on the official VFS site.</span></div>
+</div>
+
+<div class="card">
+<h2>Create an alert</h2>
+<div class="grid">
+<div><label for="from">Applying from</label><input id="from" placeholder="e.g. India"></div>
+<div><label for="to">Destination</label><input id="to" placeholder="e.g. Germany"></div>
+<div><label for="city">Application centre</label><input id="city" placeholder="e.g. New Delhi"></div>
+<div><label for="type">Visa type</label><select id="type"><option>Tourist / Short stay</option><option>Student</option><option>Work</option><option>Business</option><option>Family / Dependent</option><option>Other</option></select></div>
+<div><label for="ch">Notify me by</label><select id="ch"><option>Email</option><option>WhatsApp</option><option>Telegram</option></select></div>
+<div><label for="ct">Contact</label><input id="ct" placeholder="Email / phone / username"></div>
+</div>
+<button class="btn" id="add" type="button">Create alert</button>
+<p class="msg" id="msg" role="status"></p>
+</div>
+
+<div class="card">
+<h2>Your alerts</h2>
+<div id="list"></div>
+</div>
+
+<div class="card cta">
+<div><h2 style="margin:0">Ready to book?</h2><span class="sub" style="font-size:.92rem">Always book on the official site.</span></div>
+<a href="https://www.vfsglobal.com" target="_blank" rel="noopener">Open VFS Global →</a>
+</div>
+
+
+<footer>SlotWatch is an independent service and is not affiliated with or endorsed by VFS Global or any embassy. We don’t book appointments, bypass captchas or hold slots. Alerts can’t guarantee availability.</footer>
+</div>
+<script>
+(function(){
+var K="slotwatch-alerts",items=[];
+try{items=JSON.parse(localStorage.getItem(K)||"[]")}catch(e){items=[]}
+function save(){try{localStorage.setItem(K,JSON.stringify(items))}catch(e){}}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function render(){
+var l=document.getElementById("list");
+if(!items.length){l.innerHTML='<p class="sub" style="margin:0">No alerts yet. Create your first one above.</p>';return}
+l.innerHTML=items.map(function(a,i){return '<div class="row"><div><b>'+esc(a.from)+' → '+esc(a.to)+'</b><small><span class="tag">'+esc(a.ch)+'</span>'+esc(a.city)+' · '+esc(a.type)+' · '+esc(a.ct)+'</small></div><button class="x" data-i="'+i+'">Remove</button></div>'}).join("");
+}
+document.getElementById("list").addEventListener("click",function(e){
+var i=e.target.getAttribute("data-i");
+if(i!==null){items.splice(+i,1);save();render()}
+});
+document.getElementById("add").addEventListener("click",async function(){
+var v=function(id){return document.getElementById(id).value.trim()};
+var m=document.getElementById("msg");
+var a={from:v("from"),to:v("to"),city:v("city"),type:v("type"),ch:v("ch"),ct:v("ct")};
+if(!a.from||!a.to||!a.city||!a.ct){m.style.color="var(--bad)";m.textContent="Please fill in all fields.";return}
+try{var r=await fetch("/api/alerts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(a)});if(!r.ok)throw 0}catch(e){m.style.color="var(--bad)";m.textContent="Could not save. Please try again.";return}
+items.push(a);save();render();
+m.style.color="var(--ok)";m.textContent="Alert created ✓";
+["from","to","city","ct"].forEach(function(id){document.getElementById(id).value=""});
+});
+render();
+})();
+</script>
+</body>
+</html>
