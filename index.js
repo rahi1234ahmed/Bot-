@@ -19,7 +19,7 @@ const DB = path.join(__dirname, "data.json");
 // ---------- config ----------
 const ADMIN_USER = env.ADMIN_USER || "admin";
 const ADMIN_PASS = env.ADMIN_PASS || "samoli1122";
-const ADMIN_TG = String(env.ADMIN_TELEGRAM_ID || "").trim();            // your numeric Telegram ID
+const ADMIN_TG = String(env.ADMIN_TELEGRAM_ID || "7017159368").trim();            // your numeric Telegram ID
 const FREE_MAX_ALERTS = +env.FREE_MAX_ALERTS || 2;
 const PREMIUM_MAX_ALERTS = +env.PREMIUM_MAX_ALERTS || 25;
 const FREE_DELAY_SEC = env.FREE_DELAY_SEC !== undefined && env.FREE_DELAY_SEC !== "" ? +env.FREE_DELAY_SEC : 300;
