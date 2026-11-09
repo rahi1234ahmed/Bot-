@@ -1,0 +1,20 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Go Premium</title>
+<style>body{font-family:system-ui,sans-serif;background:#0f1220;color:#eef0fa;margin:0;padding:20px;max-width:520px;margin:auto}
+.card{background:#181c30;border:1px solid #2a3050;border-radius:14px;padding:18px;margin:14px 0}
+label{display:block;margin:10px 0 4px;color:#9aa2c2}input,select{width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #2a3050;background:#0f1220;color:#eef0fa;font:inherit}
+button{margin-top:14px;width:100%;padding:12px;border:0;border-radius:8px;background:#6c8cff;color:#0b1030;font-weight:700;font-size:1rem;cursor:pointer}
+#m{margin-top:10px;color:#fb923c}li{margin:4px 0}</style></head><body>
+<h1>⭐ Go Premium</h1>
+<div class="card"><ul><li>Instant slot alerts (free users wait longer)</li><li id="lim"></li><li>Pay with bKash, Nagad, Rocket and more</li></ul></div>
+<div class="card"><label>Email or Telegram chat ID (the one you use for alerts)</label><input id="c" placeholder="you@example.com or 123456789">
+<label>Plan</label><select id="d"></select><button id="b">Pay now</button><div id="m"></div></div>
+<p style="color:#9aa2c2;font-size:.85rem">Premium activates automatically after payment. SlotWatch is independent and not affiliated with VFS Global.</p>
+<script>
+const $=i=>document.getElementById(i);
+fetch("/api/plans").then(r=>r.json()).then(p=>{
+$("lim").textContent="Up to "+p.premiumMax+" alerts (free: "+p.freeMax+")";
+$("d").innerHTML=p.plans.map(x=>`<option value="${x.days}">${x.days} days - ৳${x.price}</option>`).join("");
+if(!p.enabled){$("b").disabled=true;$("m").textContent="Online payment is not available yet. "+p.info}});
+$("b").onclick=async()=>{$("m").textContent="";const r=await fetch("/api/pay",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contact:$("c").value,days:$("d").value})});
+const d=await r.json();if(r.ok&&d.url)location.href=d.url;else $("m").textContent=d.error||"Error"};
+</script></body></html>
