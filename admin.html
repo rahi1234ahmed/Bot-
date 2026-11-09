@@ -1,0 +1,28 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SlotWatch Admin</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#0f1220;color:#eef0fa;margin:0;padding:16px;max-width:900px;margin:auto}
+h1{margin:8px 0 16px}.card{background:#181c30;border:1px solid #2a3050;border-radius:14px;padding:16px;margin-bottom:16px}
+input{padding:10px;border-radius:8px;border:1px solid #2a3050;background:#0f1220;color:#eef0fa;margin:4px 6px 4px 0;font:inherit}
+button{padding:10px 16px;border:0;border-radius:8px;background:#6c8cff;color:#0b1030;font-weight:700;cursor:pointer}
+.x{background:none;color:#fb923c;border:1px solid #fb923c;padding:4px 10px}
+table{width:100%;border-collapse:collapse;font-size:.9rem}td,th{padding:8px;border-top:1px solid #2a3050;text-align:left}
+.scroll{overflow-x:auto}#out{margin-top:10px;color:#4cd3a0}
+</style></head><body>
+<h1>SlotWatch Admin</h1>
+<div class="card"><b>Mark slot as open</b><p style="color:#9aa2c2;margin:6px 0">Notifies matching alerts. Use only after you have checked availability yourself through a permitted channel.</p>
+<input id="to" placeholder="Destination"><input id="city" placeholder="City"><input id="type" placeholder="Visa type (optional)"><input id="note" placeholder="Note (optional)">
+<button id="go">Notify matching users</button><div id="out"></div></div>
+<div class="card scroll"><b id="count">Alerts</b><table id="t"></table></div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function load(){const d=await (await fetch("/api/admin/alerts")).json();
+$("count").textContent="Alerts ("+d.alerts.length+")";
+$("t").innerHTML="<tr><th>Route</th><th>Centre</th><th>Type</th><th>Channel</th><th>Last notified</th><th></th></tr>"+
+d.alerts.map(a=>`<tr><td>${esc(a.from)} → ${esc(a.to)}</td><td>${esc(a.city)}</td><td>${esc(a.type)}</td><td>${esc(a.channel)}: ${esc(a.contact)}</td><td>${a.notified?new Date(a.notified).toLocaleString():"-"}</td><td><button class="x" data-id="${a.id}">Delete</button></td></tr>`).join("");}
+$("t").onclick=async e=>{const id=e.target.dataset.id;if(id&&confirm("Delete this alert?")){await fetch("/api/admin/alerts/"+id,{method:"DELETE"});load()}};
+$("go").onclick=async()=>{const r=await fetch("/api/admin/slots",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:$("to").value,city:$("city").value,type:$("type").value,note:$("note").value})});
+const d=await r.json();$("out").textContent=r.ok?`Matched ${d.matched}, sent ${d.sent}${d.errors.length?", failed "+d.errors.length:""}`:(d.error||"Error");load()};
+load();
+</script></body></html>
